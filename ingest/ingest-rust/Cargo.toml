@@ -1,0 +1,28 @@
+[package]
+name = "logdog-rust"
+version = "0.0.1"
+publish = false
+license = "MIT"
+edition = "2021"
+description = "Ingest module for logdog"
+
+[dependencies]
+amqprs = { version = "1.3" }
+chrono = { version = "0.4"}
+notify = { version = "6.0" }
+tokio = { version = "1" }
+tokio-postgres = { version = "0.7", features = ["with-serde_json-1", "with-chrono-0_4"] }
+async-trait = { version = "0.1" }
+serde_json = { version = "1" }
+time = { version = "0.3", features = ["parsing"] }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = {version = "0.3"}
+
+[[bin]]
+name = "logdog-consumer"
+path = "src/consumer.rs"
+
+[[bin]]
+name = "logdog-producer"
+path = "src/producer.rs"
