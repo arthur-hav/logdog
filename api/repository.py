@@ -1,22 +1,11 @@
-from datetime import datetime
 from psycopg import AsyncConnection, OperationalError, sql, rows
-from pydantic import BaseModel
-from typing import Any, Optional, Dict, List
+from typing import Dict, List
 import os
 import time
-
-
-class Datapoint(BaseModel):
-    time: datetime
-    id: int
-    key: Optional[List[str]]
-    value: Optional[List[Optional[str]]]
-    metric: Optional[List[Optional[float]]]
-
-
-class Log(BaseModel):
-    time: datetime
-    data: Dict[str, Any]
+from .handler import Log, LogFilter
+from psycopg.types.json import Json
+from fastapi.encoders import jsonable_encoder
+import json
 
 
 class PostgresRepository:
@@ -41,23 +30,49 @@ class PostgresRepository:
     def get_cursor(self, *args, **kwargs):
         return self.conn.cursor(*args, **kwargs)
 
-    async def get_logs(self, from_time, to_time, jsonfilter) -> List[Dict]:
+    async def get_logs(self, time_from, time_to, filter_list: list[LogFilter]) -> List[Dict]:
         cur = self.get_cursor(row_factory=rows.class_row(Log))
-        await cur.execute(
-            f"""
+        prepare = sql.SQL(
+            """
             SELECT time, logdata AS data
             FROM logs
             WHERE time > %s::TIMESTAMP
-              AND time < %s::TIMESTAMP
-              AND logdata @> %s
-            ORDER BY time
-            LIMIT 20;
-            """,
-            (
-                from_time,
-                to_time,
-                jsonfilter,
-            ),
+              AND time < %s::TIMESTAMP"""
         )
+        query_args = [time_from, time_to]
+        for filter_json in filter_list:
+            prepare += sql.SQL(""" AND logdata ->> %s {} %s """.format(filter_json["op"]))
+            query_args.extend(
+                [
+                    filter_json["key"],
+                    int(filter_json["value"]) if filter_json["value"].isnumeric() else filter_json["value"],
+                ]
+            )
+        prepare += sql.SQL(""" ORDER BY time DESC LIMIT 20;""")
+        await cur.execute(prepare, tuple(query_args))
 
         return list(await cur.fetchall())
+
+    async def store_filters(self, filters: list[LogFilter]) -> int:
+        cur = self.get_cursor()
+        await cur.execute(
+            """
+            INSERT INTO filters (list_filters) VALUES (%s::JSONB)
+                RETURNING id;
+            """,
+            (Json(jsonable_encoder(filters)),),
+        )
+
+        return (await cur.fetchone())[0]
+
+    async def get_filters(self, filter_id: int) -> list[LogFilter]:
+        cur = self.get_cursor()
+        await cur.execute(
+            """
+            SELECT list_filters
+                FROM filters WHERE id = %s;
+            """,
+            (filter_id,),
+        )
+
+        return (await cur.fetchone())[0]
