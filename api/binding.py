@@ -1,5 +1,5 @@
-from ..domain.handler import DomainHandler
-from ..repository.repository import PostgresRepository
+from .handler import DomainHandler
+from .repository import PostgresRepository
 
 
 async def handler() -> DomainHandler:

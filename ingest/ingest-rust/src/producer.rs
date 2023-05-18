@@ -74,7 +74,6 @@ async fn main() {
                 if read_num <= 0 {
                     break;
                 }
-                println!("OK");
             }
 
             amqp_channel

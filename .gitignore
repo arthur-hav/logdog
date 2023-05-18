@@ -1,0 +1,4 @@
+*.pyc
+*.log
+Cargo.lock
+ingest/ingest-rust/target

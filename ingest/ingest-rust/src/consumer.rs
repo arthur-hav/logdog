@@ -73,7 +73,7 @@ impl AsyncConsumer for MyConsumer {
     }
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() {
     // construct a subscriber that prints formatted traces to stdout
     // global subscriber with log level according to RUST_LOG

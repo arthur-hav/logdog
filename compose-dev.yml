@@ -1,7 +1,7 @@
 version: "3"
 services:
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
+    image: timescale/timescaledb:latest-pg15
     environment:
       TIMESCALEDB_TELEMETRY: "off"
       POSTGRES_PASSWORD: "test"
@@ -9,6 +9,8 @@ services:
     volumes:
       - ./db_init:/docker-entrypoint-initdb.d
       - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
   app:
     environment:
       TCK_DB_PASSWORD: "othertest"
@@ -16,9 +18,11 @@ services:
       TCK_DB_HOST: "timescaledb"
     build: .
     command:
-      ["uvicorn", "app.api.web.main:app", "--host", "0.0.0.0", "--port", "8181"]
+      ["uvicorn", "api.web:app", "--host", "0.0.0.0", "--port", "8181"]
     ports:
       - 8181:8181
+    volumes:
+      - ./api:/opt/api
 
 volumes:
   db-data:
