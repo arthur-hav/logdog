@@ -2,6 +2,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 CREATE TABLE logs (
     time TIMESTAMP,
+    shard int,
     logdata JSONB
 );
 

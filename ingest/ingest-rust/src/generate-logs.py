@@ -1,9 +1,12 @@
 import random
+import time
+
 
 lines = []
 with open("test.log", "a") as f:
-    for i in range(50):
-        lines.append(
-            f"""{{"a": {random.random()}, "b": {[random.randint(0, 10) for i in range(4)]}, "c": "{random.choice(["test", "value", "string", "event"])}" }}"""
+    while True:
+        f.write(
+            f"""{{"a": {random.random()}, "b": {[random.randint(0, 10) for i in range(4)]}, "c": "{random.choice(["test", "value", "string", "event"])}" }}\n"""
         )
-    f.write("\n".join(lines))
+        f.flush()
+        time.sleep(0.1)

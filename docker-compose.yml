@@ -1,0 +1,74 @@
+version: "3"
+services:
+  timescaledb-an:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      TIMESCALEDB_TELEMETRY: "off"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "postgres"
+      DB_PASSWORD: "user"
+    volumes:
+      - ./db_init/trust-all.sh:/docker-entrypoint-initdb.d/111-trust-all.sh
+      - ./db_init/init-access-node.sh:/docker-entrypoint-initdb.d/222-init-access-node.sh
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+  timescaledb-dn-1:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      TIMESCALEDB_TELEMETRY: "off"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "postgres"
+    volumes:
+      - ./db_init/trust-all.sh:/docker-entrypoint-initdb.d/111-trust-all.sh
+      - ./db_init/init-data-node.sh:/docker-entrypoint-initdb.d/222-init-data-node.sh
+      - dn-1-data:/var/lib/postgresql/data
+  timescaledb-dn-2:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      TIMESCALEDB_TELEMETRY: "off"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "postgres"
+    volumes:
+      - ./db_init/trust-all.sh:/docker-entrypoint-initdb.d/111-trust-all.sh
+      - ./db_init/init-data-node.sh:/docker-entrypoint-initdb.d/222-init-data-node.sh
+      - dn-2-data:/var/lib/postgresql/data
+  timescaledb-dn-3:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      TIMESCALEDB_TELEMETRY: "off"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "postgres"
+    volumes:
+      - ./db_init/trust-all.sh:/docker-entrypoint-initdb.d/111-trust-all.sh
+      - ./db_init/init-data-node.sh:/docker-entrypoint-initdb.d/222-init-data-node.sh
+      - dn-3-data:/var/lib/postgresql/data
+  timescaledb-dn-4:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      TIMESCALEDB_TELEMETRY: "off"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "postgres"
+    volumes:
+      - ./db_init/trust-all.sh:/docker-entrypoint-initdb.d/111-trust-all.sh
+      - ./db_init/init-data-node.sh:/docker-entrypoint-initdb.d/222-init-data-node.sh
+      - dn-4-data:/var/lib/postgresql/data
+  rabbitmq:
+    image: rabbitmq:latest
+    ports:
+      - 5672:5672
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports:
+      - 3000:3000
+volumes:
+  db-data:
+    driver: local
+  dn-1-data:
+    driver: local
+  dn-2-data:
+    driver: local
+  dn-3-data:
+    driver: local
+  dn-4-data:
+    driver: local

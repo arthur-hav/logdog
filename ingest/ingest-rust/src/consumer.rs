@@ -22,12 +22,14 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 pub struct LogRow {
     time: chrono::DateTime<chrono::Utc>,
+    shard: i32,
     data: serde_json::Value,
 }
 impl LogRow {
-    pub fn new(data: &str) -> Self {
+    pub fn new(data: &str, shard: &i32) -> Self {
         Self {
             time: chrono::offset::Utc::now(),
+            shard: shard.clone(),
             data: serde_json::from_str(data).unwrap(),
         }
     }
@@ -35,6 +37,7 @@ impl LogRow {
 pub struct MyConsumer {
     no_ack: bool,
     sender: mpsc::Sender<LogRow>,
+    shard_counter: i32,
 }
 
 impl MyConsumer {
@@ -47,7 +50,11 @@ impl MyConsumer {
     /// no_ack = [`false`] means manual ack, and should send ACK message to server.
     pub fn new(no_ack: bool, sender: mpsc::Sender<LogRow>) -> Self {
         // Now we can execute a simple statement that just returns its parameter.
-        Self { no_ack, sender }
+        Self {
+            no_ack,
+            sender,
+            shard_counter: 0,
+        }
     }
 }
 
@@ -62,8 +69,9 @@ impl AsyncConsumer for MyConsumer {
     ) {
         let utf8_content = String::from_utf8(content).unwrap();
         info!("consume delivery {} on channel {}", deliver, channel,);
-        let log = LogRow::new(&utf8_content.as_str());
+        let log = LogRow::new(&utf8_content.as_str(), &self.shard_counter);
         self.sender.send(log).await.unwrap();
+        self.shard_counter = (self.shard_counter + 1) % 4;
         // ack explicitly if manual ack
         if !self.no_ack {
             info!("ack to delivery {} on channel {}", deliver, channel);
@@ -146,10 +154,9 @@ async fn main() {
 
     let _manager = tokio::spawn(async move {
         // Establish a connection to the server
-        let (mut client, db_connect) =
-            connect("host=localhost user=logs password=othertest", NoTls)
-                .await
-                .unwrap();
+        let (mut client, db_connect) = connect("host=localhost user=postgres password=test", NoTls)
+            .await
+            .unwrap();
         tokio::spawn(async move {
             if let Err(e) = db_connect.await {
                 eprintln!("connection error: {}", e);
@@ -160,7 +167,7 @@ async fn main() {
         while let Some(cmd) = rx.recv().await {
             let mut rows = Vec::new();
             rows.push(cmd);
-            for _i in 0..128 {
+            for _i in 0..256 {
                 let res = rx.try_recv();
                 if res.is_err() {
                     break;
@@ -169,14 +176,16 @@ async fn main() {
             }
             let transaction = client.transaction().await.unwrap();
             let sink = transaction
-                .copy_in("COPY logs (time, logdata) FROM STDIN BINARY")
+                .copy_in("COPY logs (time, shard, logdata) FROM STDIN BINARY")
                 .await
                 .unwrap();
-            let writer = BinaryCopyInWriter::new(sink, &[Type::TIMESTAMPTZ, Type::JSONB]);
+            let writer =
+                BinaryCopyInWriter::new(sink, &[Type::TIMESTAMPTZ, Type::INT4, Type::JSONB]);
             pin_mut!(writer);
             for log in rows {
                 let mut row: Vec<&'_ (dyn ToSql + Sync)> = Vec::new();
                 row.push(&log.time);
+                row.push(&log.shard);
                 row.push(&log.data);
                 let _num_written = writer.as_mut().write(&row).await.unwrap();
             }
