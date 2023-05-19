@@ -15,18 +15,10 @@ services:
     image: rabbitmq:latest
     ports:
       - 5672:5672
-  app:
-    environment:
-      TCK_DB_PASSWORD: "othertest"
-      TCK_DB_LOGIN: "logs"
-      TCK_DB_HOST: "timescaledb"
-    build: .
-    command:
-      ["uvicorn", "api.web:app", "--host", "0.0.0.0", "--port", "8181"]
+  grafana:
+    image: grafana/grafana-oss:latest
     ports:
-      - 8181:8181
-    volumes:
-      - ./api:/opt/api
+      - 3000:3000
 
 volumes:
   db-data:
