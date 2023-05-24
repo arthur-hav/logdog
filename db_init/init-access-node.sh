@@ -36,10 +36,14 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE TABLE logs (
     time TIMESTAMP,
     shard int,
+    level TEXT,
+    source TEXT,
+    words TEXT[],
     logdata JSONB
 );
 
 CREATE INDEX idx_logdata ON logs USING GIN (logdata);
+CREATE INDEX idx_words ON logs USING GIN (words);
 
 SELECT add_data_node('dn1', 'timescaledb-dn-1');
 SELECT add_data_node('dn2', 'timescaledb-dn-2');
